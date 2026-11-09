@@ -1,79 +1,65 @@
-# LAYERS by GEOHERITAGE — website
+# LAYERS autopilot: set-up and daily use
 
-This folder is the whole website. There is no server program and no database, so it runs on any free static host. You don't need to build or install anything to publish it.
+## What it does
 
-## What is in the folder
+**Every Sunday (automatic):**
+1. Looks for new papers about the six Arab Gulf countries in OpenAlex, a free index of research papers.
+2. Claude reads each new paper and drafts a map record **only if the paper itself gives the site's coordinates**. Relevant papers without coordinates are listed as *leads* for you.
+3. Drafts up to 3 **AI hypotheses** that link nearby places from different layers.
+4. Checks 30 random reference links and lists the broken ones.
+5. Runs the automatic checks: the location is inside the right country, the quoted coordinates match, it is not a duplicate, a reference exists, the names are right and the Arabic characters are clean.
+6. Opens a **pull request** (a review page on GitHub) and you get a notification.
 
-| File | What it does |
-|---|---|
-| `index.html` | The app for computers. Phones that open it are sent to `mobile.html` automatically. |
-| `mobile.html` | The app for phones. Large screens with a mouse are sent back to `index.html`. |
-| `ed-kw.html` … `ed-om.html` | The six country editions. Each loads only when someone opens that country, so the first page opens in under a second. |
-| `places.html` | A plain directory of every place in English and Arabic, with coordinates and directions. Search engines and AI tools read this page, because they can't use the map. |
-| `sitemap.xml` | Tells search engines which pages to index. |
-| `kw.html` `sa.html` `bh.html` `qa.html` `ae.html` `om.html` | Short share pages, one per country, each with its own preview image. They open the app on that country. |
-| `og-*.png` | Preview images shown when a link is shared on WhatsApp, X and similar apps. |
-| `manifest.webmanifest`, `sw.js`, `icon-*.png`, `apple-touch-icon.png` | Let people add the app to their home screen. After the first visit it also works offline. |
-| `privacy.html` | Privacy policy. The app collects nothing. |
-| `404.html`, `robots.txt`, `.nojekyll` | Small files for hosting. Keep them. |
+**When you approve (merge the pull request):**
+- The approved records are added to the map. Records that fail the checks are never added.
+- Every edition is rebuilt and the website is published automatically.
 
-## Requirements
+**AI hypotheses** are saved as drafts in `autopilot/review/done/`. To add one to the app, ask Claude to turn it into a hypothesis entry. They are never added automatically.
 
-- **A static web host with HTTPS.** GitHub Pages, Netlify and Cloudflare Pages are all free. HTTPS is needed for the offline mode, for "Track live" (GPS) and for sharing.
-- **Internet access for visitors** on their first visit. The fonts (Newsreader, Instrument Sans, Amiri, IBM Plex Sans Arabic) come from Google Fonts. If the fonts can't load, the app still works with system fonts.
-- **Optional: your own domain** (for example `layers.example.com`). All three hosts support one.
+## Optional: fully automatic publishing
 
-The maps, data, stories and drawings are all inside these HTML files, so nothing else needs to be uploaded. The first page is about 2 MB, or about 0.9 MB after compression, which every host above applies automatically. That opens in under a second on 4G.
+Two safety layers run on every draft before anything can be published:
+1. **Rule checks.** These test the location, the coordinates, duplicates, the source, the names and the Arabic.
+2. **The goldfish reviewer.** A second, independent Claude review. It never saw how the record was written. It gets only the paper and the draft, and it fails any claim the paper does not state. This is the "review with a goldfish" idea.
 
-## Option A — GitHub Pages
+If you set the variable `AUTO_PUBLISH` to `true`, a weekly run publishes **by itself only when every record passes both layers with no warnings at all**. Anything doubtful still waits for you. AI hypotheses are always drafts.
 
-You already have `smbehbehani-max.github.io/Layers/`.
+Auto-publish stays **on hold until 8 January 2027** (after the award judging). Change this with the variable `HOLD_UNTIL`.
 
-1. Open your **Layers** repository on github.com.
-2. Click **Add file → Upload files**.
-3. Drag in **every file from this folder**. `.nojekyll` is a hidden file, so on a Mac press `Cmd + Shift + .` in Finder to see it. Replace the old files when GitHub asks.
-4. Click **Commit changes**.
-5. Go to **Settings → Pages**. Check that **Source** is "Deploy from a branch", the branch is `main` and the folder is `/ (root)`. Tick **Enforce HTTPS**.
-6. Wait about one minute, then open `https://smbehbehani-max.github.io/Layers/`.
+Every automatic publish leaves a comment on the review page. You can undo it by reverting the merge.
 
-GitHub's web upload accepts files up to 25 MB, so every file in this folder is fine.
+## One-time set-up (about 20 minutes)
 
-## Option B — Netlify (drag and drop)
+1. **Get an API key.** At console.anthropic.com, create an API key and set a **monthly spending limit** (for example 10 USD). The weekly run uses a few dollars a month at most with the default caps.
+2. **Put the source in your repository.**
+   - Install **GitHub Desktop** and clone your `Layers` repository.
+   - Inside that folder, delete the old website files but keep the hidden `.git` folder.
+   - Unzip `layers-github-repo.zip` into the folder.
+   - In GitHub Desktop, **Commit** and then **Push**.
+3. **Turn on publishing from Actions.** In the repository, open **Settings → Pages** and set **Source** to **GitHub Actions**.
+4. **Allow the workflows to work.** Open **Settings → Actions → General**. Under *Workflow permissions*, choose **Read and write permissions** and tick **Allow GitHub Actions to create and approve pull requests**.
+5. **Add the key.** Open **Settings → Secrets and variables → Actions**.
+   - Under *New repository secret*, set the name to `ANTHROPIC_API_KEY` and paste your key.
+   - Optional *Variables*:
+     - `CONTACT`: your e-mail, which OpenAlex prefers so it can contact you.
+     - `SITE_URL`: only if you move to your own domain.
+     - `MAX_PAPERS`: default 20.
+     - `MAX_HYP`: default 3.
+6. **First run.**
+   - Open the **Actions** tab and run **Build and publish**. Your site comes back at the same address.
+   - Then run **Weekly research** once to see a first review.
+7. **Notifications on your phone.** In the GitHub app, open the repository and choose **Watch → All activity**.
 
-1. Sign in at app.netlify.com.
-2. Go to **Sites → Add new site → Deploy manually**.
-3. Drag this whole folder onto the page.
-4. You get an address like `something.netlify.app`. Rename it under **Site configuration → Change site name**.
+## Reviewing on your phone
 
-To update the site later, open **Deploys** and drag in the new folder.
+Open the pull request in the GitHub app.
+- **Approve:** if everything looks right, tap **Merge**. The site updates within about 10 minutes.
+- **Fix a draft:** open *Files changed*, edit the JSON (change a value or delete a record), then merge.
+- **Reject:** close the pull request.
+- **Checks:** a red ✗ on the pull request means a record failed the checks. That record will not be added even if you merge. Fix it or delete it.
 
-## Your own domain
+## Safety
 
-- **GitHub Pages:** go to Settings → Pages → Custom domain. Then add the DNS records GitHub shows you at your domain registrar.
-- **Netlify:** go to Domain management → Add a domain.
-
-Share links work on any address: the app builds them from the address it is running on.
-
-If you move to your own domain, also rebuild the website folder with your address so the sitemap and preview links point to it: `python3 make_site.py https://your-domain.com/`.
-
-After the site is live, submit `sitemap.xml` in Google Search Console (search.google.com/search-console) so Google indexes the places.
-
-## Updating the site
-
-When you get a new version, replace `index.html` and `mobile.html` (and any other changed files) and upload again.
-
-Visitors get the new version on their next visit. The offline copy refreshes itself whenever they are online.
-
-## Testing on your own computer
-
-Opening `index.html` by double-clicking works, but offline mode and the phone/computer switch only work over http. To test properly:
-
-1. Open a terminal in this folder.
-2. Run `python3 -m http.server 8000`.
-3. Visit `http://localhost:8000`.
-
-To force one version, add `?desktop=1` (stay on the computer version) or `?mobile=1` (stay on the phone version) to the end of the address.
-
-## Source code
-
-`layers-source.zip` holds the scripts and data that produce these two pages. You only need it to change content. See `SOURCE.md` inside it.
+- **Undo:** every change is a git commit. Use *Revert* in GitHub Desktop or on the commit page.
+- **Pause:** in the Actions tab, open a workflow and choose **⋯ → Disable workflow**. It is wise to merge carefully, or pause, while the awards are being judged (late Nov to Jan).
+- **Kuwait:** new Kuwait finds appear as leads only, because Kuwait is the hand-curated home edition.
