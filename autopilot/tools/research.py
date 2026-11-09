@@ -58,6 +58,21 @@ def find_papers():
             time.sleep(0.3)
     return found
 
+
+# ---------- goldfish: an independent reviewer that never saw how the draft was written ----------
+GOLDFISH = ("You are an independent fact checker for a scientific heritage map. You did NOT write this record and you know nothing else about it. "
+            "You get ONLY the source paper's title and abstract and the draft record. Check every factual claim in the record against the paper text: "
+            "the place name, the coordinates (the coordinate_quote must appear in the paper text and match lat/lng), dates, ages, numbers, the layer "
+            "(archaeological/geological/ecology), and every sentence of desc, sig, se. Anything not stated in the paper is unsupported, even if it sounds right. "
+            "Also flag: the sea named anything other than the Arabian Gulf; political or border claims; Arabic that changes the meaning of the English. "
+            "Return JSON only: {\"verdict\": \"pass\" or \"fail\", \"problems\": [short strings]}. Pass only if there are no problems.")
+def goldfish(rec, title, ab):
+    try:
+        r = claude(GOLDFISH, f"Paper title: {title}\nPaper abstract:\n{ab}\n\nDraft record:\n{json.dumps({k: v for k, v in rec.items() if k != 'goldfish'}, ensure_ascii=False)}", 1500)
+        return {'verdict': r.get('verdict', 'fail'), 'problems': r.get('problems', [])}
+    except Exception as e:
+        return {'verdict': 'fail', 'problems': [f'review failed: {e}']}
+
 def draft_records(papers):
     rules = open(os.path.join(AUTO, 'prompts', 'WRITE_RECORDS.md'), encoding='utf-8').read()
     style = open(os.path.join(AUTO, 'prompts', 'ARABIC_STYLE.md'), encoding='utf-8').read()
@@ -79,7 +94,9 @@ def draft_records(papers):
         try: r = claude(system, user)
         except Exception as e: REPORT.append(f'- Claude error on {doi or w["id"]}: {e}'); continue
         for rec in r.get('records', []):
-            rec['refs'] = rec.get('refs') or [cite]; rec.setdefault('source_paper', doi or w['id'])
+            rec['refs'] = [cite];  # the paper is the only source a draft may cite
+            rec.setdefault('source_paper', doi or w['id'])
+            rec['goldfish'] = goldfish(rec, w.get('title'), ab)
             by_cc.setdefault(cc, []).append(rec)
         for l in r.get('leads', []): leads.append(f"- **{NAMES[cc]}** · {l.get('name')}: {l.get('why')} · [{w.get('title')}]({doi or w['id']})")
     for cc, recs in by_cc.items():

@@ -2,7 +2,7 @@
 
 Goal: keep LAYERS growing from new published research, while every public change stays checked and approved by the owner.
 
-1. **Human approval before publishing.** Software and AI may search, read, draft, check and suggest. Nothing new or changed reaches the public site until the owner approves it (merges the review pull request).
+1. **Approval before publishing.** Software and AI may search, read, draft, check and suggest. A change reaches the public site only when the owner merges it, or (if the owner switched on AUTO_PUBLISH) when every record passes all rule checks and the independent goldfish review with no warnings. AI hypotheses always need the owner.
 2. **Published sources only.** Every record cites a real publication. A location must be quoted from that publication (or an official listing) and stored in `coordinate_quote`. Never estimate, average or invent a coordinate, date, number or reference.
 3. **Findings, interpretations and hypotheses stay separate.** AI hypotheses are drafts for the owner. They are labelled as ideas, never facts, and are never added to the app automatically.
 4. **Allowed sources.** Use official APIs and open sources whose terms allow automated access (OpenAlex, Crossref, UNESCO, Protected Planet, government open data). No scraping of sites that forbid it.

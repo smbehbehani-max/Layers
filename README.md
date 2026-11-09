@@ -16,6 +16,18 @@
 
 **AI hypotheses** are saved as drafts in `autopilot/review/done/`. To add one to the app, ask Claude to turn it into a hypothesis entry. They are never added automatically.
 
+## Optional: fully automatic publishing
+
+Two safety layers run on every draft before anything can be published:
+1. **Rule checks.** These test the location, the coordinates, duplicates, the source, the names and the Arabic.
+2. **The goldfish reviewer.** A second, independent Claude review. It never saw how the record was written. It gets only the paper and the draft, and it fails any claim the paper does not state. This is the "review with a goldfish" idea.
+
+If you set the variable `AUTO_PUBLISH` to `true`, a weekly run publishes **by itself only when every record passes both layers with no warnings at all**. Anything doubtful still waits for you. AI hypotheses are always drafts.
+
+Auto-publish stays **on hold until 8 January 2027** (after the award judging). Change this with the variable `HOLD_UNTIL`.
+
+Every automatic publish leaves a comment on the review page. You can undo it by reverting the merge.
+
 ## One-time set-up (about 20 minutes)
 
 1. **Get an API key.** At console.anthropic.com, create an API key and set a **monthly spending limit** (for example 10 USD). The weekly run uses a few dollars a month at most with the default caps.

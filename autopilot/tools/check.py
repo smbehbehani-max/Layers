@@ -30,6 +30,9 @@ def check_record(cc, r, sites, seen):
     refs = r.get('refs') or []
     if not refs: E.append('no references')
     elif not any(re.search(r'10\.\d{4,9}/|https?://', json.dumps(x)) for x in refs): E.append('no reference has a DOI or URL')
+    gf = r.get('goldfish')
+    if not gf: W.append('no independent (goldfish) review')
+    elif gf.get('verdict') != 'pass': E.append('independent reviewer found problems: ' + '; '.join(gf.get('problems', [])[:5]))
     blob = json.dumps(r, ensure_ascii=False).lower()
     for pat in BANNED:
         if re.search(pat, blob): E.append('uses a banned name (the sea is the Arabian Gulf / الخليج العربي)')
@@ -40,7 +43,7 @@ def check_record(cc, r, sites, seen):
 
 def main():
     out = ['# Automatic checks', '', 'Errors must be fixed (or the record removed) before approving. Warnings need a human look.', '']
-    bad = 0; n = 0
+    bad = 0; n = 0; warn = 0
     seen = {s['id'] for cc in ['kw'] + CCS for s in load(cc)['sites']}
     for f in inbox_files('records'):
         cc = os.path.basename(f)[8:10]
@@ -52,7 +55,7 @@ def main():
             n += 1
             E, W = check_record(cc, r, sites, seen); seen.add(r.get('id'))
             mark = '❌' if E else ('⚠️' if W else '✅')
-            bad += bool(E)
+            bad += bool(E); warn += bool(W)
             out.append(f"- {mark} **{r.get('n', '?')}** `{r.get('id', '?')}` · {r.get('c', '?')} · {r.get('lat')}, {r.get('lng')}")
             for e in E: out.append(f'  - error: {e}')
             for w in W: out.append(f'  - warning: {w}')
@@ -68,6 +71,7 @@ def main():
         out.append('')
     out.insert(3, f'**{n} records checked, {bad} with errors.**\n')
     p = os.path.join(REVIEW, 'inbox', 'CHECKS.md'); open(p, 'w', encoding='utf-8').write('\n'.join(out))
+    json.dump({'records': n, 'errors': bad, 'warnings': warn}, open(os.path.join(REVIEW, 'inbox', 'checks.json'), 'w'))
     print('\n'.join(out))
     sys.exit(1 if bad else 0)
 
